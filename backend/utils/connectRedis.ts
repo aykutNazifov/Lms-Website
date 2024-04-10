@@ -1,10 +1,12 @@
 require("dotenv").config()
 import { Redis } from "ioredis"
 
-const redisClient = () => {
-    return new Redis(process.env.REDIS_URL!)
-}
+const redis = new Redis(process.env.REDIS_URL!, {
+    tls: {
+        rejectUnauthorized: false
+    }
+});
 
-export default redisClient
+export default redis
 
 

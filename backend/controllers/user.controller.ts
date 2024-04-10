@@ -7,6 +7,8 @@ import jwt from "jsonwebtoken";
 import ejs from 'ejs'
 import path from "path";
 import sendMail from "../utils/sendMail";
+import { sendToken } from "../utils/jwt";
+import redis from "../utils/connectRedis";
 
 // register user
 interface IRegistrationBody {
@@ -115,5 +117,57 @@ export const activateUser = asyncHandler(async (req: Request, res: Response) => 
         success: true,
         message: "Your account is created successfully."
     })
+})
 
+
+// login user
+
+interface ILoginBody {
+    email: string;
+    password: string;
+}
+
+export const loginUser = asyncHandler(async (req: Request, res: Response) => {
+    try {
+        const { email, password } = req.body as ILoginBody
+
+        if (!email || !password) {
+            throw new ErrorHandler("Email and password are required.", 400)
+        }
+
+        const user = await userModel.findOne({ email }).select("+password")
+
+        if (!user) {
+            throw new ErrorHandler("Invalid email or password", 400)
+        }
+
+        const isPasswordMatch = await user.comparePassword(password)
+
+        if (!isPasswordMatch) {
+            throw new ErrorHandler("Invalid email or password", 400)
+        }
+
+        sendToken(user, 200, res)
+
+    } catch (error: any) {
+        throw new ErrorHandler(error.message, 400)
+    }
+})
+
+
+// logout user
+export const logoutUser = asyncHandler(async (req: Request, res: Response) => {
+    try {
+        res.cookie("access_token", "", { maxAge: 1 })
+        res.cookie("refresh_token", "", { maxAge: 1 })
+
+        redis.del(req.user._id)
+        res.status(200).json({
+            success: true,
+            message: "Logged out successfully."
+        })
+
+    } catch (error: any) {
+        throw new ErrorHandler(error.message, 400)
+    }
 })
