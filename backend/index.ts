@@ -5,6 +5,7 @@ import cookieParser from "cookie-parser"
 import connectDb from "./utils/connectDb"
 import { errorMiddleware } from "./middleware/error"
 import ErrorHandler from "./utils/ErrorHandler"
+import userRouter from "./routes/user.route"
 
 const app = express()
 
@@ -12,9 +13,8 @@ app.use(express.json({ limit: "50mb" }))
 app.use(cookieParser())
 app.use(cors({ origin: process.env.ORIGIN }))
 
-app.get("/", (req: Request, res: Response) => {
-    res.send("Test")
-})
+// routes
+app.use("/api/auth", userRouter)
 
 app.all("*", (req: Request) => {
     throw new ErrorHandler(`Route ${req.originalUrl} not found!`, 404)
