@@ -1,9 +1,10 @@
 import mongoose, { Document } from "mongoose";
+import { IUser } from "./user.model";
 
-interface IComment extends Document {
-    user: object;
+export interface IComment extends Document {
+    user: IUser;
     comment: string;
-    commentReplies: IComment[]
+    commentReplies?: IComment[]
 }
 
 interface IReview extends Document {
