@@ -3,12 +3,13 @@ import { Request, Response } from "express";
 import userModel, { IUser } from "../models/user.model";
 import ErrorHandler from "../utils/ErrorHandler";
 import asyncHandler from "express-async-handler"
-import jwt from "jsonwebtoken";
+import jwt, { JwtPayload } from "jsonwebtoken";
 import ejs from 'ejs'
 import path from "path";
 import sendMail from "../utils/sendMail";
 import { sendToken } from "../utils/jwt";
 import redis from "../utils/connectRedis";
+import cloudinary from 'cloudinary'
 
 // register user
 interface IRegistrationBody {
@@ -165,6 +166,205 @@ export const logoutUser = asyncHandler(async (req: Request, res: Response) => {
         res.status(200).json({
             success: true,
             message: "Logged out successfully."
+        })
+
+    } catch (error: any) {
+        throw new ErrorHandler(error.message, 400)
+    }
+})
+
+// update access token
+export const updateAccessToken = asyncHandler(async (req: Request, res: Response) => {
+    try {
+        const refresh_token = req.cookies.refresh_token
+        const decoded = jwt.verify(refresh_token, process.env.REFRESH_TOKEN!) as JwtPayload
+
+        if (!decoded) {
+            throw new ErrorHandler("Token is not valid.", 400)
+        }
+
+        const user = await userModel.findById(decoded.id)
+
+        if (!user) {
+            throw new ErrorHandler("User is not found.", 404)
+        }
+
+        sendToken(user, 200, res)
+
+    } catch (error: any) {
+        throw new ErrorHandler(error.message, 400)
+    }
+})
+
+// get user info
+export const getUserInfo = asyncHandler(async (req: Request, res: Response) => {
+    try {
+        const id = req.user._id
+
+        let user;
+
+        user = await redis.get(id)
+
+        if (!user) {
+            user = await userModel.findById(id)
+
+            if (!user) {
+                throw new ErrorHandler("User is not found.", 404)
+            } else {
+                redis.set(user._id, JSON.stringify(user))
+            }
+        }
+        user = JSON.parse(user as string)
+        res.status(200).json({
+            success: true,
+            user
+        })
+    } catch (error: any) {
+        throw new ErrorHandler(error.message, 400)
+    }
+})
+
+interface ISocialBody {
+    email: string;
+    name: string;
+    avatar: string;
+}
+
+// social auth
+export const socialAuth = asyncHandler(async (req: Request, res: Response) => {
+    try {
+        const { email, name, avatar } = req.body as ISocialBody
+        const user = await userModel.findOne({ email })
+
+        if (user) {
+            sendToken(user, 200, res)
+        } else {
+            const newUser = await userModel.create({ email, name, avatar })
+            sendToken(newUser, 200, res)
+        }
+    } catch (error: any) {
+        throw new ErrorHandler(error.message, 400)
+    }
+})
+
+interface IUpdateUserBody {
+    name?: string;
+}
+
+// update user info
+export const updateUserInfo = asyncHandler(async (req: Request, res: Response) => {
+    try {
+        const { name } = req.body as IUpdateUserBody
+        const userId = req.user._id
+
+        if (!name) {
+            throw new ErrorHandler("Name is required.", 400)
+        }
+
+        const user = await userModel.findById(userId)
+
+        if (!user) {
+            throw new ErrorHandler("User is not found.", 404)
+        }
+
+        user.name = name
+
+        await user.save()
+
+        await redis.set(userId, JSON.stringify(user))
+
+        res.status(201).json({
+            success: true,
+            user
+        })
+
+    } catch (error: any) {
+        throw new ErrorHandler(error.message, 400)
+    }
+})
+
+// update user password
+interface IUpdatePasswordBody {
+    oldPassword: string;
+    newPassword: string;
+}
+export const updateUserPassword = asyncHandler(async (req: Request, res: Response) => {
+    try {
+        const { oldPassword, newPassword } = req.body as IUpdatePasswordBody
+
+        if (!oldPassword || !newPassword) {
+            throw new ErrorHandler("Old password and new password are required.", 404)
+        }
+
+        const userId = req.user._id
+
+        const user = await userModel.findById(userId).select("+password")
+
+        if (!user) {
+            throw new ErrorHandler("User not found.", 404)
+        }
+
+        const isPasswordMatch = await user.comparePassword(oldPassword)
+
+        if (!isPasswordMatch) {
+            throw new ErrorHandler("Invalid old password.", 400)
+        }
+
+        user.password = newPassword;
+
+        await user.save()
+
+        await redis.set(userId, JSON.stringify(user))
+
+        res.status(201).json({
+            success: true,
+            user
+        })
+
+    } catch (error: any) {
+        throw new ErrorHandler(error.message, 400)
+    }
+})
+
+
+
+// update user profile avatar
+interface IUpdateAvatarBody {
+    avatar: string
+}
+export const updateUserAvatar = asyncHandler(async (req: Request, res: Response) => {
+    try {
+        const { avatar } = req.body as IUpdateAvatarBody
+
+        if (!avatar) {
+            throw new ErrorHandler("Avatar is required.", 400)
+        }
+
+        const userId = req.user._id
+
+        const user = await userModel.findById(userId)
+
+        if (!user) {
+            throw new ErrorHandler("User not found.", 404)
+        }
+
+        if (user?.avatar?.public_id) {
+            await cloudinary.v2.uploader.destroy(user.avatar.public_id)
+        }
+
+        const cloudinaryAvatarInfo = await cloudinary.v2.uploader.upload(avatar, {
+            folder: "avatars",
+            width: 150
+        })
+        user.avatar.public_id = cloudinaryAvatarInfo.public_id
+        user.avatar.url = cloudinaryAvatarInfo.url
+
+        await user.save()
+        await redis.set(userId, JSON.stringify(user))
+
+        res.status(201).json({
+            success: true,
+            user
         })
 
     } catch (error: any) {
