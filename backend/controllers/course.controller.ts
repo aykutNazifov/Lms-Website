@@ -34,3 +34,47 @@ export const uploadCourse = asyncHandler(async (req: Request, res: Response) => 
         throw new ErrorHandler(error.message, 400)
     }
 })
+
+// edit course 
+export const editCourse = asyncHandler(async (req: Request, res: Response) => {
+    try {
+        const courseId = req.params.id
+        const data = req.body
+
+        const course = await couseModel.findById(courseId)
+
+        if (!course) {
+            throw new ErrorHandler("Course not found.", 404)
+        }
+
+        if (course.thumbnail && data.thumbnail) {
+            await clodinary.v2.uploader.destroy(course?.thumbnail?.public_id)
+
+            const cloudinaryThumbnailInfo = await clodinary.v2.uploader.upload(data.thumbnail, { folder: "courses" })
+
+            data.thumbnail = {
+                public_id: cloudinaryThumbnailInfo.public_id,
+                url: cloudinaryThumbnailInfo.url
+            }
+        }
+
+        if (!course.thumbnail && data.thumbnail) {
+            const cloudinaryThumbnailInfo = await clodinary.v2.uploader.upload(data.thumbnail, { folder: "courses" })
+
+            data.thumbnail = {
+                public_id: cloudinaryThumbnailInfo.public_id,
+                url: cloudinaryThumbnailInfo.url
+            }
+        }
+
+        const updatedCourse = await couseModel.findByIdAndUpdate(courseId, data, { new: true })
+
+        res.status(200).json({
+            success: true,
+            updatedCourse
+        })
+
+    } catch (error: any) {
+        throw new ErrorHandler(error.message, 400)
+    }
+})
