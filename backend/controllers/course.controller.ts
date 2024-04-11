@@ -3,6 +3,7 @@ import asyncHandler from "express-async-handler"
 import ErrorHandler from "../utils/ErrorHandler";
 import clodinary from "cloudinary"
 import couseModel from "../models/course.model";
+import redis from "../utils/connectRedis";
 
 
 // upload course
@@ -73,6 +74,65 @@ export const editCourse = asyncHandler(async (req: Request, res: Response) => {
             success: true,
             updatedCourse
         })
+
+    } catch (error: any) {
+        throw new ErrorHandler(error.message, 400)
+    }
+})
+
+// get single course -- without purchasing
+
+export const getSingleCourse = asyncHandler(async (req: Request, res: Response) => {
+    try {
+        const courseId = req.params.id;
+
+        const cachedCourse = await redis.get(courseId)
+
+        if (cachedCourse) {
+            res.status(200).json({
+                success: true,
+                course: JSON.parse(cachedCourse)
+            })
+        } else {
+            const course = await couseModel.findById(courseId).select("-courseData.videoUrl -courseData.suggestion -courseData.questions -courseData.usefulLinks")
+
+            if (!course) {
+                throw new ErrorHandler("Course not found.", 404)
+            }
+
+            await redis.set(courseId, JSON.stringify(course))
+
+            res.status(200).json({
+                success: true,
+                course
+            })
+        }
+    } catch (error: any) {
+        throw new ErrorHandler(error.message, 400)
+    }
+})
+
+// get all courses 
+export const getAllCourses = asyncHandler(async (req: Request, res: Response) => {
+    try {
+
+        const cachedCourses = await redis.get("courses")
+
+        if (cachedCourses) {
+            res.status(200).json({
+                success: true,
+                courses: JSON.parse(cachedCourses)
+            })
+        } else {
+            const courses = await couseModel.find().select("-courseData.videoUrl -courseData.suggestion -courseData.questions -courseData.usefulLinks")
+
+            await redis.set("courses", JSON.stringify(courses))
+
+            res.status(200).json({
+                success: true,
+                courses
+            })
+        }
 
     } catch (error: any) {
         throw new ErrorHandler(error.message, 400)
