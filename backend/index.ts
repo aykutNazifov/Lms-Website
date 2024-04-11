@@ -1,5 +1,5 @@
 require("dotenv").config()
-import express, { NextFunction, Request, Response } from "express"
+import express, { Request } from "express"
 import cors from "cors"
 import cookieParser from "cookie-parser"
 import connectDb from "./utils/connectDb"
@@ -7,6 +7,7 @@ import { errorMiddleware } from "./middleware/error"
 import ErrorHandler from "./utils/ErrorHandler"
 import userRouter from "./routes/user.route"
 import cloudinary from "cloudinary"
+import courseRouter from "./routes/course.route"
 
 const app = express()
 
@@ -23,6 +24,7 @@ cloudinary.v2.config({
 
 // routes
 app.use("/api/auth", userRouter)
+app.use("/api/course", courseRouter)
 
 app.all("*", (req: Request) => {
     throw new ErrorHandler(`Route ${req.originalUrl} not found!`, 404)
