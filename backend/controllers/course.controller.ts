@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import asyncHandler from "express-async-handler"
 import ErrorHandler from "../utils/ErrorHandler";
 import clodinary from "cloudinary"
-import couseModel, { IComment } from "../models/course.model";
+import courseModel, { IComment } from "../models/course.model";
 import redis from "../utils/connectRedis";
 import sendMail from "../utils/sendMail";
 
@@ -25,7 +25,7 @@ export const uploadCourse = asyncHandler(async (req: Request, res: Response) => 
             }
         }
 
-        const course = await couseModel.create(data)
+        const course = await courseModel.create(data)
 
         res.status(201).json({
             success: true,
@@ -43,7 +43,7 @@ export const editCourse = asyncHandler(async (req: Request, res: Response) => {
         const courseId = req.params.id
         const data = req.body
 
-        const course = await couseModel.findById(courseId)
+        const course = await courseModel.findById(courseId)
 
         if (!course) {
             throw new ErrorHandler("Course not found.", 404)
@@ -69,7 +69,7 @@ export const editCourse = asyncHandler(async (req: Request, res: Response) => {
             }
         }
 
-        const updatedCourse = await couseModel.findByIdAndUpdate(courseId, data, { new: true })
+        const updatedCourse = await courseModel.findByIdAndUpdate(courseId, data, { new: true })
 
         res.status(200).json({
             success: true,
@@ -95,7 +95,7 @@ export const getSingleCourse = asyncHandler(async (req: Request, res: Response) 
                 course: JSON.parse(cachedCourse)
             })
         } else {
-            const course = await couseModel.findById(courseId).select("-courseData.videoUrl -courseData.suggestion -courseData.questions -courseData.usefulLinks")
+            const course = await courseModel.findById(courseId).select("-courseData.videoUrl -courseData.suggestion -courseData.questions -courseData.usefulLinks")
 
             if (!course) {
                 throw new ErrorHandler("Course not found.", 404)
@@ -125,7 +125,7 @@ export const getAllCourses = asyncHandler(async (req: Request, res: Response) =>
                 courses: JSON.parse(cachedCourses)
             })
         } else {
-            const courses = await couseModel.find().select("-courseData.videoUrl -courseData.suggestion -courseData.questions -courseData.usefulLinks")
+            const courses = await courseModel.find().select("-courseData.videoUrl -courseData.suggestion -courseData.questions -courseData.usefulLinks")
 
             await redis.set("courses", JSON.stringify(courses))
 
@@ -152,7 +152,7 @@ export const getCourseByUser = asyncHandler(async (req: Request, res: Response) 
             throw new ErrorHandler("You don't have permision to access this course.", 400)
         }
 
-        const course = await couseModel.findById(courseId)
+        const course = await courseModel.findById(courseId)
 
         if (!course) {
             throw new ErrorHandler("Course not found.", 404)
@@ -192,7 +192,7 @@ export const addQestion = asyncHandler(async (req: Request, res: Response) => {
             throw new ErrorHandler("All fields are required.", 400)
         }
 
-        const course = await couseModel.findById(courseId)
+        const course = await courseModel.findById(courseId)
 
         if (!course) {
             throw new ErrorHandler("Course not found.", 404)
@@ -249,8 +249,7 @@ export const replyToQuestion = asyncHandler(async (req: Request, res: Response) 
             throw new ErrorHandler("You don't have permision to access this course.", 400)
         }
 
-
-        const course = await couseModel.findById(courseId)
+        const course = await courseModel.findById(courseId)
 
         if (!course) {
             throw new ErrorHandler("Course not found.", 404)
@@ -295,6 +294,114 @@ export const replyToQuestion = asyncHandler(async (req: Request, res: Response) 
                 throw new ErrorHandler(error.message, 400)
             }
         }
+
+        res.status(201).json({
+            success: true,
+            course
+        })
+
+    } catch (error: any) {
+        throw new ErrorHandler(error.message, 400)
+    }
+})
+
+// add review in course
+
+interface IAddReviewBody {
+    review: string;
+    rating: number;
+}
+
+export const addReview = asyncHandler(async (req: Request, res: Response) => {
+    try {
+        const courseId = req.params.id
+        const { review, rating } = req.body as IAddReviewBody
+
+        if (!review || !rating) {
+            throw new ErrorHandler("Review and rating are required.", 400)
+        }
+
+        const userCourseList = req.user.courses
+        const user = req.user
+
+        const courseExistInCourseList = userCourseList.find((course: { courseId: string }) => course.courseId === courseId)
+
+        if (!courseExistInCourseList) {
+            throw new ErrorHandler("You don't have permision to access this course.", 400)
+        }
+
+        const course = await courseModel.findById(courseId)
+
+        if (!course) {
+            throw new ErrorHandler("Course not found.", 404)
+        }
+
+        const newReview: any = {
+            user,
+            comment: review,
+            rating
+        }
+
+        course.reviews.push(newReview)
+
+        const avg = (course.reviews.reduce((a, r) => a + r.rating, 0)) / course.reviews.length
+
+        course.rating = avg
+
+        await course.save()
+
+        const notification = {
+            title: "New Review Received",
+            message: `${req.user.name} has given a review in ${course.name}.`
+        }
+
+        res.status(201).json({
+            success: true,
+            course
+        })
+
+    } catch (error: any) {
+        throw new ErrorHandler(error.message, 400)
+    }
+})
+
+
+// add reply in review
+interface IReplyReviewBody {
+    comment: string;
+    reviewId: string;
+}
+
+export const replyToReview = asyncHandler(async (req: Request, res: Response) => {
+    try {
+        const user = req.user
+        const courseId = req.params.id
+        const { reviewId, comment } = req.body as IReplyReviewBody
+
+        if (!reviewId || !comment) {
+            throw new ErrorHandler("All fields are required.", 400)
+        }
+
+        const course = await courseModel.findById(courseId)
+
+        if (!course) {
+            throw new ErrorHandler("Course not found.", 404)
+        }
+
+        const review = course.reviews.find(rew => rew._id.toString() === reviewId.toString())
+
+        if (!review) {
+            throw new ErrorHandler("Review not found.", 404)
+        }
+
+        const newReviewReply: any = {
+            user,
+            comment
+        }
+
+        review.commentReplies?.push(newReviewReply)
+
+        await course.save()
 
         res.status(201).json({
             success: true,

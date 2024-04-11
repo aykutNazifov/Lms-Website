@@ -8,10 +8,10 @@ export interface IComment extends Document {
 }
 
 interface IReview extends Document {
-    user: object;
+    user: IUser;
     rating: number;
     comment: string;
-    commentReplies: IComment[];
+    commentReplies?: IComment[];
 }
 
 interface IUsefulLink extends Document {
@@ -43,7 +43,7 @@ interface ICourse extends Document {
     demoVideoUrl: string;
     benefits: { title: string }[];
     prerequisites: { title: string }[];
-    review: IReview[];
+    reviews: IReview[];
     courseData: ICourseData[];
     rating?: number;
     purchased?: number;
@@ -55,7 +55,8 @@ const reviewSchema = new mongoose.Schema<IReview>({
         type: Number,
         default: 0
     },
-    comment: String
+    comment: String,
+    commentReplies: [Object]
 })
 
 const usefulLinkSchema = new mongoose.Schema<IUsefulLink>({
@@ -110,7 +111,7 @@ const courseSchema = new mongoose.Schema<ICourse>({
     demoVideoUrl: String,
     benefits: [Object],
     prerequisites: [Object],
-    review: [reviewSchema],
+    reviews: [reviewSchema],
     courseData: [courseDataSchema],
     rating: Number,
     purchased: Number
@@ -118,6 +119,6 @@ const courseSchema = new mongoose.Schema<ICourse>({
     timestamps: true
 })
 
-const couseModel = mongoose.model("Course", courseSchema)
+const courseModel = mongoose.model("Course", courseSchema)
 
-export default couseModel;
+export default courseModel;
