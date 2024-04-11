@@ -138,3 +138,33 @@ export const getAllCourses = asyncHandler(async (req: Request, res: Response) =>
         throw new ErrorHandler(error.message, 400)
     }
 })
+
+// get course content
+export const getCourseByUser = asyncHandler(async (req: Request, res: Response) => {
+    try {
+        const userCourseList = req.user.courses
+        const courseId = req.params.id
+
+        const courseExistInCourseList = userCourseList.find((course: { courseId: string }) => course.courseId === courseId)
+
+        if (!courseExistInCourseList) {
+            throw new ErrorHandler("You don't have permision to access this course.", 400)
+        }
+
+        const course = await couseModel.findById(courseId)
+
+        if (!course) {
+            throw new ErrorHandler("Course not found.", 404)
+        }
+
+        const content = course.courseData
+
+        res.status(200).json({
+            success: true,
+            content
+        })
+
+    } catch (error: any) {
+        throw new ErrorHandler(error.message, 400)
+    }
+})
