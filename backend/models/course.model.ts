@@ -114,7 +114,10 @@ const courseSchema = new mongoose.Schema<ICourse>({
     reviews: [reviewSchema],
     courseData: [courseDataSchema],
     rating: Number,
-    purchased: Number
+    purchased: {
+        type: Number,
+        default: 0
+    }
 }, {
     timestamps: true
 })
