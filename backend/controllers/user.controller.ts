@@ -371,3 +371,18 @@ export const updateUserAvatar = asyncHandler(async (req: Request, res: Response)
         throw new ErrorHandler(error.message, 400)
     }
 })
+
+//get all users
+export const getAllUsers = asyncHandler(async (req: Request, res: Response) => {
+    try {
+        const users = await userModel.find().sort({ createdAt: -1 })
+
+        res.status(200).json({
+            success: true,
+            users
+        })
+
+    } catch (error: any) {
+        throw new ErrorHandler(error.message, 400)
+    }
+})

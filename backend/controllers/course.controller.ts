@@ -420,3 +420,18 @@ export const replyToReview = asyncHandler(async (req: Request, res: Response) =>
         throw new ErrorHandler(error.message, 400)
     }
 })
+
+//get all courses
+export const getAllCoursesAdmin = asyncHandler(async (req: Request, res: Response) => {
+    try {
+        const courses = await courseModel.find().sort({ createdAt: -1 })
+
+        res.status(200).json({
+            success: true,
+            courses
+        })
+
+    } catch (error: any) {
+        throw new ErrorHandler(error.message, 400)
+    }
+})

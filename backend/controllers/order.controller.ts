@@ -85,3 +85,18 @@ export const createOrder = asyncHandler(async (req: Request, res: Response) => {
         throw new ErrorHandler(error.message, 400)
     }
 })
+
+//get all orders
+export const getAllOrders = asyncHandler(async (req: Request, res: Response) => {
+    try {
+        const orders = await orderModel.find().sort({ createdAt: -1 })
+
+        res.status(200).json({
+            success: true,
+            orders
+        })
+
+    } catch (error: any) {
+        throw new ErrorHandler(error.message, 400)
+    }
+})
