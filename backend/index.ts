@@ -10,6 +10,7 @@ import cloudinary from "cloudinary"
 import courseRouter from "./routes/course.route"
 import orderRouter from "./routes/order.route"
 import notificationRouter from "./routes/notification.route"
+import analyticsRouter from "./routes/analytics.route"
 
 const app = express()
 
@@ -29,6 +30,7 @@ app.use("/api/auth", userRouter)
 app.use("/api/course", courseRouter)
 app.use("/api/order", orderRouter)
 app.use("/api/notification", notificationRouter)
+app.use("/api/analytics", analyticsRouter)
 
 app.all("*", (req: Request) => {
     throw new ErrorHandler(`Route ${req.originalUrl} not found!`, 404)
