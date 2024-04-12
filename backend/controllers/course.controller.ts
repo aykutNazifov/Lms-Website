@@ -435,3 +435,29 @@ export const getAllCoursesAdmin = asyncHandler(async (req: Request, res: Respons
         throw new ErrorHandler(error.message, 400)
     }
 })
+
+//delete course --admin
+export const deleteCourse = asyncHandler(async (req: Request, res: Response) => {
+
+    try {
+        const courseId = req.params.id
+
+        const course = await courseModel.findById(courseId)
+
+        if (!course) {
+            throw new ErrorHandler("User not found.", 404)
+        }
+
+        await courseModel.deleteOne({ _id: course._id })
+
+        await redis.del(courseId)
+
+        res.status(200).json({
+            success: true,
+            message: "Course successfully deleted."
+        })
+
+    } catch (error: any) {
+        throw new ErrorHandler(error.message, 400)
+    }
+})

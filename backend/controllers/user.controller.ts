@@ -386,3 +386,58 @@ export const getAllUsers = asyncHandler(async (req: Request, res: Response) => {
         throw new ErrorHandler(error.message, 400)
     }
 })
+
+//update user role
+export const updateUserRole = asyncHandler(async (req: Request, res: Response) => {
+    try {
+
+        const { id, role } = req.body
+
+        if (!id || !role) {
+            throw new ErrorHandler("Id and role are required.", 400)
+        }
+
+        const user = await userModel.findById(id)
+
+        if (!user) {
+            throw new ErrorHandler("User not found.", 404)
+        }
+
+        user.role = role
+
+        await user.save()
+
+        res.status(200).json({
+            success: true, user
+        })
+
+    } catch (error: any) {
+        throw new ErrorHandler(error.message, 400)
+    }
+})
+
+//delete user --admin
+export const deleteUser = asyncHandler(async (req: Request, res: Response) => {
+
+    try {
+        const userId = req.params.id
+
+        const user = await userModel.findById(userId)
+
+        if (!user) {
+            throw new ErrorHandler("User not found.", 404)
+        }
+
+        await userModel.deleteOne({ _id: user._id })
+
+        await redis.del(userId)
+
+        res.status(200).json({
+            success: true,
+            message: "User successfully deleted."
+        })
+
+    } catch (error: any) {
+        throw new ErrorHandler(error.message, 400)
+    }
+})
