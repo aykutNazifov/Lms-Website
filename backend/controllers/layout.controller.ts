@@ -157,3 +157,24 @@ export const editLayout = asyncHandler(async (req: Request, res: Response) => {
         throw new ErrorHandler(error.message, error.statusCode || 500)
     }
 })
+
+//get layout by type 
+export const getLayout = asyncHandler(async (req: Request, res: Response) => {
+    try {
+        const type = req.params.type
+
+        const layout = await layoutModel.findOne({ type })
+
+        if (!layout) {
+            throw new ErrorHandler("Layout not found.", 404)
+        }
+
+        res.status(200).json({
+            success: true,
+            layout
+        })
+
+    } catch (error: any) {
+        throw new ErrorHandler(error.message, error.statusCode || 500)
+    }
+})
