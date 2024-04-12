@@ -30,7 +30,6 @@ const navItemsData = [
 const NavItems = () => {
     const pathname = usePathname()
 
-    console.log({ pathname })
     return (
         <div className='hidden md:flex gap-x-4'>
             {navItemsData.map(navItem => (
