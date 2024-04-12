@@ -5,6 +5,7 @@ import clodinary from "cloudinary"
 import courseModel, { IComment } from "../models/course.model";
 import redis from "../utils/connectRedis";
 import sendMail from "../utils/sendMail";
+import notificationModel from "../models/notification.model";
 
 
 // upload course
@@ -212,6 +213,13 @@ export const addQestion = asyncHandler(async (req: Request, res: Response) => {
         courseDataContent.questions.push(newQuestion)
 
         await course.save()
+
+        await notificationModel.create({
+            userId: user._id,
+            title: "New Question",
+            status: "unread",
+            message: `You have a new question in ${courseDataContent.title}`
+        })
 
         res.status(201).json({
             success: true,
