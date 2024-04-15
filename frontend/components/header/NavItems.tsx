@@ -31,7 +31,7 @@ const NavItems = () => {
     const pathname = usePathname()
 
     return (
-        <div className='hidden md:flex gap-x-4'>
+        <div className='hidden md:flex gap-x-4 items-center'>
             {navItemsData.map(navItem => (
                 <Link key={navItem.name} href={navItem.url} className={pathname === navItem.url ? "text-green-900 dark:text-green-400 font-bold" : ""}>{navItem.name}</Link>
             ))}

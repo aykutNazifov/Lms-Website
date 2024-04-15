@@ -4,6 +4,8 @@ import Heading from "@/utils/Heading";
 import ThemeProvider from "@/utils/theme-provider";
 import Header from "@/components/header/Header";
 import ModalsProvider from "@/providers/ModalsProvider";
+import { Toaster } from "react-hot-toast";
+import { Providers } from "@/providers/Providers";
 
 const poppins = Poppins({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-Poppins" });
 const josefin_sans = Josefin_Sans({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-Josefin" });
@@ -17,13 +19,16 @@ export default function RootLayout({
     <html lang="en">
       <Heading title="LMS" description="LMS description" keywords="Lms" />
       <body className={`${poppins.variable} ${josefin_sans.variable} font-Poppins bg-white text-neutral-800 dark:bg-neutral-800 dark:text-white`}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <ModalsProvider />
-          <Header />
-          <div>
-            {children}
-          </div>
-        </ThemeProvider>
+        <Providers>
+          <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+            <ModalsProvider />
+            <Header />
+            <div>
+              {children}
+              <Toaster position="top-center" reverseOrder={false} />
+            </div>
+          </ThemeProvider>
+        </Providers>
       </body>
     </html>
   );
